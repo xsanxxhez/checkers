@@ -1,3 +1,6 @@
+import random
+import string
+
 class CheckersGame:
     def __init__(self):
         self.board = self.create_board()
@@ -6,6 +9,8 @@ class CheckersGame:
         self.game_over = False
         self.winner = None
         self.move_history = []
+        self.players = {'red': None, 'blue': None}  # Храним sid игроков
+        self.player_count = 0
 
     def create_board(self):
         board = [[0 for _ in range(8)] for _ in range(8)]
@@ -23,6 +28,9 @@ class CheckersGame:
                     board[row][col] = {'type': 'piece', 'color': 'blue', 'king': False}
 
         return board
+
+    def is_valid_position(self, row, col):
+        return 0 <= row < 8 and 0 <= col < 8
 
     def get_valid_moves(self, row, col):
         piece = self.board[row][col]
@@ -63,9 +71,6 @@ class CheckersGame:
 
         # Если есть взятия, можно только ими ходить
         return capture_moves if capture_moves else moves
-
-    def is_valid_position(self, row, col):
-        return 0 <= row < 8 and 0 <= col < 8
 
     def make_move(self, from_row, from_col, to_row, to_col):
         if self.game_over:
@@ -111,11 +116,41 @@ class CheckersGame:
 
         return True
 
+    def add_player(self, sid):
+        """Добавляет игрока в игру"""
+        if self.player_count == 0:
+            self.players['red'] = sid
+            self.player_count += 1
+            return 'red'
+        elif self.player_count == 1:
+            self.players['blue'] = sid
+            self.player_count += 1
+            return 'blue'
+        return None
+
+    def remove_player(self, sid):
+        """Удаляет игрока из игры"""
+        if self.players['red'] == sid:
+            self.players['red'] = None
+            self.player_count -= 1
+        elif self.players['blue'] == sid:
+            self.players['blue'] = None
+            self.player_count -= 1
+
+    def get_player_color(self, sid):
+        """Возвращает цвет игрока по его sid"""
+        if self.players['red'] == sid:
+            return 'red'
+        elif self.players['blue'] == sid:
+            return 'blue'
+        return None
+
     def get_game_state(self):
         return {
             'board': self.board,
             'current_player': self.current_player,
             'game_over': self.game_over,
             'winner': self.winner,
+            'player_count': self.player_count,
             'move_history': self.move_history[-5:]  # последние 5 ходов
         }

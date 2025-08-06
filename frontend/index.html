@@ -11,22 +11,67 @@
 <div class="container">
     <h1>Русские шашки онлайн</h1>
 
-    <div class="game-info">
-        <div class="room-controls">
-            <input type="text" id="roomInput" placeholder="Название комнаты" value="default">
-            <button onclick="joinRoom()">Присоединиться</button>
+    <!-- Экран выбора режима -->
+    <div id="modeScreen" class="screen">
+        <h2>Выберите режим</h2>
+        <div class="mode-buttons">
+            <button onclick="showCreateRoom()">Создать комнату</button>
+            <button onclick="showJoinRoom()">Присоединиться</button>
         </div>
-        <div class="status" id="status">Ожидание подключения...</div>
     </div>
 
-    <div class="game-container">
-        <canvas id="gameCanvas" width="600" height="600"></canvas>
+    <!-- Экран создания комнаты -->
+    <div id="createRoomScreen" class="screen" style="display: none;">
+        <h2>Создать комнату</h2>
+        <div class="room-form">
+            <input type="text" id="roomNameInput" placeholder="Название комнаты (необязательно)">
+            <button onclick="createRoom()">Создать</button>
+            <button onclick="showModeScreen()" class="secondary">Назад</button>
+        </div>
     </div>
 
-    <div class="instructions">
-        <p>Инструкция: Кликните на шашку, затем на клетку для хода</p>
-        <p>Вы играете за <span id="yourColor">?</span></p>
+    <!-- Экран присоединения -->
+    <div id="joinRoomScreen" class="screen" style="display: none;">
+        <h2>Присоединиться к комнате</h2>
+        <div class="room-form">
+            <input type="text" id="roomCodeInput" placeholder="Введите код комнаты" maxlength="6">
+            <button onclick="joinRoom()">Присоединиться</button>
+            <button onclick="showModeScreen()" class="secondary">Назад</button>
+        </div>
     </div>
+
+    <!-- Экран ожидания -->
+    <div id="waitingScreen" class="screen" style="display: none;">
+        <h2>Комната создана!</h2>
+        <div class="room-info">
+            <p>Код комнаты: <span id="roomCodeDisplay"></span></p>
+            <p>Поделитесь этим кодом с другом</p>
+            <p>Ожидание второго игрока...</p>
+        </div>
+    </div>
+
+    <!-- Игровой экран -->
+    <div id="gameScreen" class="screen" style="display: none;">
+        <div class="game-header">
+            <div class="room-info-top">
+                <span>Комната: <span id="currentRoomCode"></span></span>
+                <span>Вы: <span id="yourColorDisplay"></span></span>
+            </div>
+            <div class="game-status" id="gameStatus">Ходит: красные</div>
+        </div>
+
+        <div class="game-container">
+            <canvas id="gameCanvas" width="600" height="600"></canvas>
+        </div>
+
+        <div class="game-info">
+            <div id="playerCount">Игроков: 1/2</div>
+            <button onclick="leaveRoom()" class="secondary">Выйти</button>
+        </div>
+    </div>
+
+    <!-- Сообщения об ошибках -->
+    <div id="errorMessage" class="error-message" style="display: none;"></div>
 </div>
 
 <script src="script.js"></script>
