@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Русские шашки онлайн</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+</head>
+<body>
+<div class="container">
+    <h1>Русские шашки онлайн</h1>
+
+    <div class="game-info">
+        <div class="room-controls">
+            <input type="text" id="roomInput" placeholder="Название комнаты" value="default">
+            <button onclick="joinRoom()">Присоединиться</button>
+        </div>
+        <div class="status" id="status">Ожидание подключения...</div>
+    </div>
+
+    <div class="game-container">
+        <canvas id="gameCanvas" width="600" height="600"></canvas>
+    </div>
+
+    <div class="instructions">
+        <p>Инструкция: Кликните на шашку, затем на клетку для хода</p>
+        <p>Вы играете за <span id="yourColor">?</span></p>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
