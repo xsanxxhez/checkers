@@ -5,7 +5,7 @@ let gameBoard = [];
 let currentPlayer = 'red';
 let selectedPiece = null;
 let roomCode = '';
-let playerColor = null;
+let playerColor = null;  // Цвет ТЕКУЩЕГО игрока
 let playerCount = 0;
 
 window.onload = function() {
@@ -26,8 +26,8 @@ window.onload = function() {
 
     socket.on('room_created', function(data) {
         roomCode = data.room_code;
-        playerColor = data.player_color; // Цвет создателя комнаты
-        console.log('Room created. Your color:', playerColor);
+        playerColor = data.player_color;  // Первый игрок всегда красный
+        console.log('Комната создана. Ваш цвет:', playerColor);
 
         document.getElementById('modeScreen').style.display = 'none';
         document.getElementById('waitingScreen').style.display = 'block';
@@ -35,10 +35,9 @@ window.onload = function() {
     });
 
     socket.on('player_joined', function(data) {
-        // ВАЖНО: Обновляем playerColor для второго игрока
-        playerColor = data.player_color; // Цвет присоединившегося игрока
+        playerColor = data.player_color;  // Второй игрок всегда синий
         playerCount = data.player_count;
-        console.log('Player joined. Your color:', playerColor, 'Player count:', playerCount);
+        console.log('Игрок присоединился. Ваш цвет:', playerColor);
         updatePlayerCount();
 
         if (data.player_count === 2) {
@@ -52,7 +51,6 @@ window.onload = function() {
     });
 
     socket.on('game_state', function(data) {
-        console.log('Game state received:', data);
         gameBoard = data.board;
         currentPlayer = data.current_player;
         playerCount = data.player_count;
@@ -61,7 +59,7 @@ window.onload = function() {
         updatePlayerCount();
         drawBoard();
 
-        // Если игра началась
+        // Для второго игрока, который только что присоединился
         if (data.player_count === 2 && document.getElementById('waitingScreen').style.display !== 'none') {
             document.getElementById('waitingScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
@@ -73,7 +71,6 @@ window.onload = function() {
     });
 
     socket.on('error', function(data) {
-        console.log('Error:', data.message);
         showError(data.message);
     });
 
@@ -186,7 +183,6 @@ function handleCanvasClick(event) {
     event.preventDefault();
 
     if (!playerColor) {
-        console.log('No player color assigned');
         return;
     }
 
@@ -215,7 +211,6 @@ function handleCanvasClick(event) {
     const piece = gameBoard[row][col];
 
     // Проверяем, что это наш ход
-    console.log('Current player:', currentPlayer, 'Your color:', playerColor);
     if (currentPlayer !== playerColor) {
         showError('Сейчас ход другого игрока!');
         return;
@@ -223,7 +218,6 @@ function handleCanvasClick(event) {
 
     if (selectedPiece) {
         // Пытаемся сделать ход
-        console.log('Making move from', selectedPiece, 'to', [row, col]);
         socket.emit('make_move', {
             from: [selectedPiece.row, selectedPiece.col],
             to: [row, col]
@@ -231,7 +225,6 @@ function handleCanvasClick(event) {
         selectedPiece = null;
     } else if (piece && piece.type === 'piece' && piece.color === playerColor) {
         // Выбираем свою шашку
-        console.log('Selecting piece at', [row, col]);
         selectedPiece = {row: row, col: col};
         drawBoard();
     } else if (piece && piece.type === 'piece' && piece.color !== playerColor) {

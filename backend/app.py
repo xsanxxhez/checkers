@@ -11,8 +11,8 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Храним игры по комнатам
 games = {}
-player_rooms = {}  # sid -> room_code
-room_codes = {}    # room_code -> room_name
+player_rooms = {}
+room_codes = {}
 
 def generate_room_code():
     """Генерирует уникальный 6-значный код комнаты"""
@@ -31,30 +31,26 @@ def serve_static(filename):
 
 @socketio.on('create_room')
 def handle_create_room(data):
-    # Генерируем уникальный код комнаты
     room_code = generate_room_code()
     room_name = data.get('room_name', f'Комната {room_code}')
 
-    # Создаем новую игру
     games[room_code] = CheckersGame()
     room_codes[room_code] = room_name
 
-    # Присоединяемся к комнате
     join_room(room_code)
     player_rooms[request.sid] = room_code
 
-    # Добавляем игрока в игру
     game = games[room_code]
     player_color = game.add_player(request.sid)
 
-    # Отправляем информацию о комнате создателю
+    print(f"Комната {room_code} создана. Игрок {request.sid} получил цвет {player_color}")
+
     emit('room_created', {
         'room_code': room_code,
         'room_name': room_name,
         'player_color': player_color
     })
 
-    # Отправляем состояние игры
     emit('game_state', game.get_game_state())
 
 @socketio.on('join_room_by_code')
@@ -70,26 +66,25 @@ def handle_join_room_by_code(data):
         emit('error', {'message': 'Комната уже заполнена'})
         return
 
-    # Присоединяемся к комнате
     join_room(room_code)
     player_rooms[request.sid] = room_code
 
-    # Добавляем игрока в игру
     player_color = game.add_player(request.sid)
 
-    # Уведомляем всех в комнате об обновлении
+    print(f"Игрок {request.sid} присоединился к комнате {room_code} с цветом {player_color}")
+
     emit('player_joined', {
         'player_color': player_color,
         'player_count': game.player_count
     }, room=room_code)
 
-    # Отправляем состояние игры всем в комнате
     emit('game_state', game.get_game_state(), room=room_code)
 
 @socketio.on('make_move')
 def handle_move(data):
     room_code = player_rooms.get(request.sid)
     if not room_code or room_code not in games:
+        emit('error', {'message': 'Игра не найдена'})
         return
 
     game = games[room_code]
@@ -98,12 +93,19 @@ def handle_move(data):
 
     # Проверяем, что игрок может ходить
     player_color = game.get_player_color(request.sid)
+    if not player_color:
+        emit('error', {'message': 'Вы не участник игры'})
+        return
+
+    print(f"Игрок {request.sid} ({player_color}) пытается сделать ход. Сейчас ходит: {game.current_player}")
+
     if player_color != game.current_player:
-        emit('error', {'message': 'Не ваш ход!'})
+        emit('error', {'message': 'Сейчас ход другого игрока!'})
         return
 
     success = game.make_move(from_pos[0], from_pos[1], to_pos[0], to_pos[1])
     if success:
+        print(f"Ход успешен. Теперь ходит: {game.current_player}")
         emit('game_state', game.get_game_state(), room=room_code)
     else:
         emit('error', {'message': 'Неверный ход'})
@@ -115,12 +117,12 @@ def handle_disconnect():
         game = games[room_code]
         game.remove_player(request.sid)
 
-        # Уведомляем остальных игроков
+        print(f"Игрок {request.sid} вышел из комнаты {room_code}")
+
         emit('player_left', {
             'player_count': game.player_count
         }, room=room_code)
 
-        # Если комната пуста, удаляем её
         if game.player_count == 0:
             del games[room_code]
             if room_code in room_codes:
