@@ -4,12 +4,12 @@ import string
 class CheckersGame:
     def __init__(self):
         self.board = self.create_board()
-        self.current_player = 'red'
+        self.current_player = 'red'  # Красные ходят первыми
         self.selected_piece = None
         self.game_over = False
         self.winner = None
         self.move_history = []
-        self.players = {'red': None, 'blue': None}  # Храним sid игроков
+        self.players = {'red': None, 'blue': None}
         self.player_count = 0
 
     def create_board(self):
@@ -80,6 +80,7 @@ class CheckersGame:
         if not piece or piece['type'] != 'piece':
             return False
 
+        # Проверяем, что это ход текущего игрока
         if piece['color'] != self.current_player:
             return False
 
@@ -152,5 +153,5 @@ class CheckersGame:
             'game_over': self.game_over,
             'winner': self.winner,
             'player_count': self.player_count,
-            'move_history': self.move_history[-5:]  # последние 5 ходов
+            'move_history': self.move_history[-5:]
         }

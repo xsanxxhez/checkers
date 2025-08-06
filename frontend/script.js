@@ -2,14 +2,20 @@ let socket;
 let canvas;
 let ctx;
 let gameBoard = [];
-let currentPlayer = '';
+let currentPlayer = 'red';
 let selectedPiece = null;
 let roomCode = '';
 let playerColor = null;
 let playerCount = 0;
 
 window.onload = function() {
-    canvas = document.getElementById('gameCanvas');
+    // Адаптируем размер canvas под мобильные устройства
+    const canvasElement = document.getElementById('gameCanvas');
+    const maxSize = Math.min(window.innerWidth - 40, 500);
+    canvasElement.width = maxSize;
+    canvasElement.height = maxSize;
+
+    canvas = canvasElement;
     ctx = canvas.getContext('2d');
 
     socket = io();
@@ -42,6 +48,7 @@ window.onload = function() {
     });
 
     socket.on('game_state', function(data) {
+        console.log('Game state received:', data);
         gameBoard = data.board;
         currentPlayer = data.current_player;
         playerCount = data.player_count;
@@ -62,10 +69,12 @@ window.onload = function() {
     });
 
     socket.on('error', function(data) {
+        console.log('Error:', data.message);
         showError(data.message);
     });
 
     canvas.addEventListener('click', handleCanvasClick);
+    canvas.addEventListener('touchstart', handleCanvasClick, { passive: false });
 };
 
 function showModeScreen() {
@@ -107,14 +116,14 @@ function joinRoom() {
 function updateGameStatus() {
     const statusElement = document.getElementById('gameStatus');
     const currentTurn = currentPlayer === 'red' ? 'красные' : 'синие';
-    statusElement.textContent = `Ходит: ${currentTurn}`;
+    statusElement.textContent = `Ходят: ${currentTurn}`;
     statusElement.className = currentPlayer;
 }
 
 function updatePlayerCount() {
     const countElement = document.getElementById('playerCount');
     if (countElement) {
-        countElement.textContent = `Игроков: ${playerCount}/2`;
+        countElement.textContent = `Игроки: ${playerCount}/2`;
     }
 }
 
@@ -170,22 +179,45 @@ function drawBoard() {
 }
 
 function handleCanvasClick(event) {
-    if (!playerColor || currentPlayer !== playerColor) {
-        return; // Не ваш ход
+    event.preventDefault();
+
+    if (!playerColor) {
+        return;
     }
 
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    // Получаем координаты с учетом touch событий
+    let x, y;
+    if (event.type === 'touchstart') {
+        const touch = event.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        x = touch.clientX - rect.left;
+        y = touch.clientY - rect.top;
+    } else {
+        const rect = canvas.getBoundingClientRect();
+        x = event.clientX - rect.left;
+        y = event.clientY - rect.top;
+    }
 
     const squareSize = canvas.width / 8;
     const col = Math.floor(x / squareSize);
     const row = Math.floor(y / squareSize);
 
+    // Проверяем, что кликнули на доску
+    if (row < 0 || row >= 8 || col < 0 || col >= 8) {
+        return;
+    }
+
     const piece = gameBoard[row][col];
+
+    // Проверяем, что это наш ход
+    if (currentPlayer !== playerColor) {
+        showError('Сейчас ход другого игрока!');
+        return;
+    }
 
     if (selectedPiece) {
         // Пытаемся сделать ход
+        console.log('Making move from', selectedPiece, 'to', [row, col]);
         socket.emit('make_move', {
             from: [selectedPiece.row, selectedPiece.col],
             to: [row, col]
@@ -193,13 +225,18 @@ function handleCanvasClick(event) {
         selectedPiece = null;
     } else if (piece && piece.type === 'piece' && piece.color === playerColor) {
         // Выбираем свою шашку
+        console.log('Selecting piece at', [row, col]);
         selectedPiece = {row: row, col: col};
         drawBoard();
+    } else if (piece && piece.type === 'piece' && piece.color !== playerColor) {
+        showError('Это шашка противника!');
     }
 }
 
 function leaveRoom() {
-    socket.disconnect();
+    if (socket) {
+        socket.disconnect();
+    }
     location.reload();
 }
 
@@ -208,16 +245,39 @@ function showError(message) {
     errorElement.textContent = message;
     errorElement.style.display = 'block';
 
+    // Вибрация на мобильных
+    if (navigator.vibrate) {
+        navigator.vibrate([200]);
+    }
+
     setTimeout(() => {
         errorElement.style.display = 'none';
     }, 3000);
 }
 
-// Обработка клавиши Escape для выхода
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        if (document.getElementById('gameScreen').style.display === 'block') {
-            leaveRoom();
-        }
+// Обработка ввода кода комнаты
+document.getElementById('roomCodeInput').addEventListener('input', function(e) {
+    let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (value.length > 6) {
+        value = value.substring(0, 6);
+    }
+    e.target.value = value;
+});
+
+// Предотвращение масштабирования
+document.addEventListener('touchmove', function(event) {
+    if (event.scale !== 1) {
+        event.preventDefault();
+    }
+}, { passive: false });
+
+// Адаптация при изменении размера окна
+window.addEventListener('resize', function() {
+    if (document.getElementById('gameScreen').style.display === 'block') {
+        const canvasElement = document.getElementById('gameCanvas');
+        const maxSize = Math.min(window.innerWidth - 40, 500);
+        canvasElement.width = maxSize;
+        canvasElement.height = maxSize;
+        drawBoard();
     }
 });
