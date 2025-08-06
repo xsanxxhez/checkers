@@ -4,8 +4,9 @@ let ctx;
 let gameBoard = [];
 let currentPlayer = 'red';
 let selectedPiece = null;
+let validMoves = [];  // Возможные ходы для выбранной шашки
 let roomCode = '';
-let playerColor = null;  // Цвет ТЕКУЩЕГО игрока
+let playerColor = null;
 let playerCount = 0;
 
 window.onload = function() {
@@ -26,8 +27,7 @@ window.onload = function() {
 
     socket.on('room_created', function(data) {
         roomCode = data.room_code;
-        playerColor = data.player_color;  // Первый игрок всегда красный
-        console.log('Комната создана. Ваш цвет:', playerColor);
+        playerColor = data.player_color;
 
         document.getElementById('modeScreen').style.display = 'none';
         document.getElementById('waitingScreen').style.display = 'block';
@@ -35,9 +35,8 @@ window.onload = function() {
     });
 
     socket.on('player_joined', function(data) {
-        playerColor = data.player_color;  // Второй игрок всегда синий
+        playerColor = data.player_color;
         playerCount = data.player_count;
-        console.log('Игрок присоединился. Ваш цвет:', playerColor);
         updatePlayerCount();
 
         if (data.player_count === 2) {
@@ -145,6 +144,20 @@ function drawBoard() {
 
             ctx.fillRect(col * squareSize, row * squareSize, squareSize, squareSize);
 
+            // Рисуем возможные ходы (точки)
+            if (selectedPiece && isValidMove(selectedPiece.row, selectedPiece.col, row, col)) {
+                ctx.fillStyle = 'rgba(40, 167, 69, 0.7)';
+                ctx.beginPath();
+                ctx.arc(
+                    col * squareSize + squareSize / 2,
+                    row * squareSize + squareSize / 2,
+                    squareSize / 6,
+                    0,
+                    2 * Math.PI
+                );
+                ctx.fill();
+            }
+
             // Рисуем шашку
             const piece = gameBoard[row][col];
             if (piece && piece.type === 'piece') {
@@ -177,6 +190,22 @@ function drawBoard() {
             }
         }
     }
+}
+
+function isValidMove(fromRow, fromCol, toRow, toCol) {
+    // Пока просто проверка на диагональные ходы
+    const rowDiff = Math.abs(toRow - fromRow);
+    const colDiff = Math.abs(toCol - fromCol);
+
+    // Простая проверка - ход по диагонали
+    if (rowDiff === colDiff && rowDiff > 0) {
+        // Проверяем, что клетка пустая
+        if (gameBoard[toRow][toCol] === 0) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function handleCanvasClick(event) {
@@ -223,9 +252,12 @@ function handleCanvasClick(event) {
             to: [row, col]
         });
         selectedPiece = null;
+        validMoves = [];
     } else if (piece && piece.type === 'piece' && piece.color === playerColor) {
         // Выбираем свою шашку
         selectedPiece = {row: row, col: col};
+        // Здесь можно будет запрашивать у сервера возможные ходы
+        validMoves = []; // Пока пусто, но позже добавим логику
         drawBoard();
     } else if (piece && piece.type === 'piece' && piece.color !== playerColor) {
         showError('Это шашка противника!');
