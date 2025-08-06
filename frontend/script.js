@@ -26,7 +26,8 @@ window.onload = function() {
 
     socket.on('room_created', function(data) {
         roomCode = data.room_code;
-        playerColor = data.player_color;
+        playerColor = data.player_color; // Цвет создателя комнаты
+        console.log('Room created. Your color:', playerColor);
 
         document.getElementById('modeScreen').style.display = 'none';
         document.getElementById('waitingScreen').style.display = 'block';
@@ -34,7 +35,10 @@ window.onload = function() {
     });
 
     socket.on('player_joined', function(data) {
+        // ВАЖНО: Обновляем playerColor для второго игрока
+        playerColor = data.player_color; // Цвет присоединившегося игрока
         playerCount = data.player_count;
+        console.log('Player joined. Your color:', playerColor, 'Player count:', playerCount);
         updatePlayerCount();
 
         if (data.player_count === 2) {
@@ -182,6 +186,7 @@ function handleCanvasClick(event) {
     event.preventDefault();
 
     if (!playerColor) {
+        console.log('No player color assigned');
         return;
     }
 
@@ -210,6 +215,7 @@ function handleCanvasClick(event) {
     const piece = gameBoard[row][col];
 
     // Проверяем, что это наш ход
+    console.log('Current player:', currentPlayer, 'Your color:', playerColor);
     if (currentPlayer !== playerColor) {
         showError('Сейчас ход другого игрока!');
         return;
