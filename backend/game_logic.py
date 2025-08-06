@@ -9,7 +9,7 @@ class CheckersGame:
         self.game_over = False
         self.winner = None
         self.move_history = []
-        self.players = {'red': None, 'blue': None}
+        self.players = {'red': None, 'blue': None}  # sid игроков
         self.player_count = 0
 
     def create_board(self):

@@ -48,7 +48,7 @@ def handle_create_room(data):
     emit('room_created', {
         'room_code': room_code,
         'room_name': room_name,
-        'player_color': player_color
+        'player_color': player_color  # Только для создателя
     })
 
     emit('game_state', game.get_game_state())
@@ -73,11 +73,22 @@ def handle_join_room_by_code(data):
 
     print(f"Игрок {request.sid} присоединился к комнате {room_code} с цветом {player_color}")
 
-    emit('player_joined', {
-        'player_color': player_color,
-        'player_count': game.player_count
-    }, room=room_code)
+    # Отправляем индивидуальную информацию каждому игроку
+    # Первому игроку (красному)
+    if game.players['red']:
+        emit('player_joined', {
+            'player_color': 'red',
+            'player_count': game.player_count
+        }, room=game.players['red'])
 
+    # Второму игроку (синему)
+    if game.players['blue']:
+        emit('player_joined', {
+            'player_color': 'blue',
+            'player_count': game.player_count
+        }, room=game.players['blue'])
+
+    # Отправляем общее состояние игры всем в комнате
     emit('game_state', game.get_game_state(), room=room_code)
 
 @socketio.on('make_move')
